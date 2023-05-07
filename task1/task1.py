@@ -6,10 +6,9 @@ import pyspark.sql.functions as F
 import pyspark.sql.types as T
 import sys
 
-def main():
-    spark = SparkSession.builder.appName("Toxic Comment Classification").enableHiveSupport().getOrCreate()
-    train_data = spark.read.csv(sys.argv[1], header=True)
-    test_data = spark.read.csv(sys.argv[2], header=True)
+def main(spark, train_data, test_data):
+    train_data = spark.read.csv(train_data, header=True)
+    test_data = spark.read.csv(test_data, header=True)
 
     # columns to be outputted
     output_columns = [i for i in train_data.columns if i not in ["id", "comment_text"]]
@@ -52,4 +51,10 @@ def main():
     test_results.sample(False, 0.4).show()
 
 if __name__ == "__main__":
-    main()
+    spark = SparkSession.builder.appName("Toxic Comment Classification").enableHiveSupport().getOrCreate()
+
+    train_data = sys.argv[1]
+
+    test_data = sys.argv[2]
+
+    main(spark, train_data, test_data)
