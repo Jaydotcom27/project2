@@ -21,7 +21,7 @@ def main():
     # tokenize the "comment_text" column
     tokenizer = Tokenizer(inputCol="comment_text", outputCol="words")
     word = tokenizer.transform(train_data)
-    train_data = train_data.whitColumn("toxic", col("toxic").cast("int")).withColumn("severe_toxic", col("severe_toxic").cast("int")).withColumn("obscene", col("obscene").cast("int")).withColumn("threat", col("threat").cast("int")).withColumn("insult", col("insult").cast("int")).withColumn("identity_hate", col("identity_hate").cast("int"))
+    train_data = train_data.withColumn("toxic", col("toxic").cast("int")).withColumn("severe_toxic", col("severe_toxic").cast("int")).withColumn("obscene", col("obscene").cast("int")).withColumn("threat", col("threat").cast("int")).withColumn("insult", col("insult").cast("int")).withColumn("identity_hate", col("identity_hate").cast("int"))
     train_data = train_data.na.drop("any")
 
     words_data = tokenizer.transform(train_data)
