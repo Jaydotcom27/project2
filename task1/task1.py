@@ -20,36 +20,38 @@ def main():
 
     # tokenize the "comment_text" column
     tokenizer = Tokenizer(inputCol="comment_text", outputCol="words")
-    words_data = tokenizer.transform(train_data).select("id", "toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate", "words")
-    words_data = words_data.withColumn("toxic", col("toxic").cast("int")).withColumn("severe_toxic", col("severe_toxic").cast("int")).withColumn("obscene", col("obscene").cast("int")).withColumn("threat", col("threat").cast("int")).withColumn("insult", col("insult").cast("int")).withColumn("identity_hate", col("identity_hate").cast("int"))
+    word = tokenizer.transform(train_data)
+    train_data = train_data.whitColumn("toxic", col("toxic").cast("int")).withColumn("severe_toxic", col("severe_toxic").cast("int")).withColumn("obscene", col("obscene").cast("int")).withColumn("threat", col("threat").cast("int")).withColumn("insult", col("insult").cast("int")).withColumn("identity_hate", col("identity_hate").cast("int"))
+    train_data = train_data.na.drop("any")
 
+    words_data = tokenizer.transform(train_data)
     # remove any rows that contain null values
     words_data = words_data.na.drop("any")
 
     # apply hashing trick and IDF transformation to tokenized text
-    hashing_tf = HashingTF(inputCol="words", outputCol="tf_features")
+    hashing_tf = HashingTF(inputCol="words", outputCol = "R")
     hash_tf = hashing_tf.transform(words_data)
-    idf = IDF(inputCol="tf_features", outputCol="tf_idf_features")
+    idf = IDF(inputCol = "R", outputCol = "features")
     idf_model = idf.fit(hash_tf)
     tf_idf = idf_model.transform(hash_tf)
 
     # preprocess test data
-    test_data = test_data.filter(col("comment_text") != '"').withColumn('id', monotonically_increasing_id())
-    test_words = tokenizer.transform(test_data).select("id", "words")
+    test_data = test_data.filter(col("comment_text") != '"').withColumn('UID', monotonically_increasing_id())
+    test_words = tokenizer.transform(test_data)
     test_hash_tf = hashing_tf.transform(test_words)
     test_tf_idf = idf_model.transform(test_hash_tf)
-    test_res = test_data.select("id")
+    test_res = test_data.select("UID")
 
     # train logistic regression model and make predictions on test data
     reg_param = 0.1
     for the_column in out_cols:
-        lr = LogisticRegression(featuresCol="tf_idf_features", labelCol=the_column, regParam=reg_param)
+        lr = LogisticRegression(featuresCol="features", labelCol=the_column, regParam=reg_param)
         lr_model = lr.fit(tf_idf.limit(4000))
         res_test = lr_model.transform(test_tf_idf)
         extract_prob = F.udf(lambda x: float(x[1]), T.FloatType())
         res_test = res_test.withColumn("proba" + '_' + the_column, extract_prob("probability")).withColumn("pred" + '_' + the_column, col('prediction'))
-        res_test = res_test.select(res_test["id"], res_test["proba" + '_' + the_column], res_test["pred" + '_' + the_column])
-        test_res = test_res.join(res_test, on=["id"])
+        res_test = res_test.select(res_test["UID"], res_test["proba" + '_' + the_column], res_test["pred" + '_' + the_column])
+        test_res = test_res.join(res_test, on=["UID"])
 
     # display sample predictions
     test_res.sample(False, 0.4).show()
