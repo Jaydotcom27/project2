@@ -12,7 +12,7 @@ hdfs dfs -mkdir -p /task4/input/
 hdfs dfs -put ./adult.csv /task4/input/
 hdfs dfs -put ./adult_test.csv /task4/input/
 
-/usr/local/spark/bin/spark-submit --master=spark://$SPARK_MASTER:7077 ./task4.py hdfs://$SPARK_MASTER:9000/task4/input/adult.csv hdfs://$SPARK_MASTER:9000/task4/input/adult_test.csv
+/usr/local/spark/bin/spark-submit --master=spark://10.128.0.5:7077 ./task4.py hdfs://10.128.0.5:9000/task4/input/adult.csv hdfs://10.128.0.5:9000/task4/input/adult_test.csv
 
 
 hdfs dfs -rm -r /task4
