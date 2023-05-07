@@ -52,9 +52,6 @@ def main(spark, train_data, test_data):
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Toxic Comment Classification").enableHiveSupport().getOrCreate()
-
     train_data = sys.argv[1]
-
     test_data = sys.argv[2]
-
     main(spark, train_data, test_data)
