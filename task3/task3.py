@@ -17,7 +17,7 @@ def main(spark, input_path):
     final_df = preProcess(res_df)
 
     # Random 80/20 data split
-    test_train_split = final_df.randomSplit([0.8,0.2],47)
+    test_train_split = final_df.randomSplit([0.8,0.2],47) # <- using same seed
     X_train = test_train_split[0]
     X_test = test_train_split[1]
 
@@ -91,7 +91,7 @@ def preProcess(spark_df):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: Logistic Regression Adult Dataset <file>", file=sys.stderr)
+        print("Logistic Regression Adult Dataset", file=sys.stderr)
         sys.exit(-1)
 
     spark = SparkSession.builder.appName("Logistic Regression classifier on Census Income Data").enableHiveSupport().getOrCreate()
