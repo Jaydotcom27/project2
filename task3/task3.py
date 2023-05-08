@@ -1,6 +1,9 @@
 from __future__ import print_function
 import sys
 from operator import add
+
+
+
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as sql_functions
 from pyspark.ml.feature import VectorAssembler, OneHotEncoder, StringIndexer
@@ -97,7 +100,7 @@ if __name__ == "__main__":
         abs_cor = []
         for c in col_names:
             if c != "income":
-                corr = abs(Statistics.corr(X_train.select('Income', c).rdd.map(lambda x: (float(x[0]), float(x[1]))), method="pearson"))
+                corr = abs(Statistics.corr(X_train.select('Income', c).rdd.map(lambda x: (float(x.toArray()[0]), float(x.toArray()[1]))), method="pearson"))
                 param.append(c)
                 correlation.append(corr[0][1])
                 abs_cor.append(abs(corr[0][1]))
