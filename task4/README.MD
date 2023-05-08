@@ -1,20 +1,24 @@
-# Part 4 : Census Income Dataset
+# Census Income Dataset (Random Forest and Decision Tree) 
 
-This folder contains the following files:
-* *README file*: This file
-* *Files*: task4.py & test4.sh
+This repository contains one script and two csv datfiles to classify based on a set of feautures if the expected income is higher or lower than USD$50,000. Using two machine learning models: Random Forest and Decision Tree.
 
-## Data Source
-You can find the data from: https://archive.ics.uci.edu/ml/datasets/census+income
+## Getting Started
 
-## Required libraries
-To run these codes, it is mandatory to run the following libraries:
+Proceed to clone this folder into the Cloud cluster spark-examples folder. If you are running it locally, its required to import this libraries:
+
 * from __future__ import print_function
 * from pyspark.sql import SparkSession
+* from pyspark.ml.classification import LogisticRegression
 * from pyspark.ml.feature import StringIndexer, VectorAssembler
-* from pyspark.ml.classification import DecisionTreeClassifier,      RandomForestClassifier
 * import pyspark.sql.functions as psf
 * import sys
 
-## Instructions to use this code
-To run everything we call the test file as `bash test4.sh` and it will get the input, process the information through the Spark framework and output the final result. A copy of each dataset named “adult.csv” and “adult_test.csv” must be in this folder.
+## Data 
+
+The data used in this analysis was obtained from the machine learning repository of the University of California, which can be accesed here:
+https://archive.ics.uci.edu/ml/datasets/census+income
+
+## Usage
+
+To run this code you need a functional Spark system running, for our experiments a 3 node cluster hosted on Google Cloud was the way to go. Two worker nodes and one manager orchestrating.
+The driver code is stored in the file `test4.sh`  and it will load the input datasets: 'adult.csv' and “adult_test.csv”, make sure to double check the appropiate location and name for the csv datafile, they need to be into the task4 folder.
