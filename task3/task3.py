@@ -110,10 +110,10 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: Logistic Regression Adult Dataset <file>", file=sys.stderr)
         sys.exit(-1)
-        
+
     spark = SparkSession.builder.appName("Logistic Regression classifier on Census Income Data").enableHiveSupport().getOrCreate()
     input_path = sys.argv[1]
-    main(spark)
+    main(spark, input_path)
 
     
 
