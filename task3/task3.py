@@ -1,32 +1,13 @@
-# -*- coding: utf-8 -*-
-#
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 from __future__ import print_function
-
 import sys
 from operator import add
-
 from pyspark.sql import SparkSession
-import pyspark.sql.functions as F
+import pyspark.sql.functions as sql_functions
 from pyspark.ml.feature import VectorAssembler, OneHotEncoder, StringIndexer
-from pyspark.ml.classification import LogisticRegression, DecisionTreeClassifier, RandomForestClassifier
-# reload(sys)
-# sys.setdefaultencoding('utf8')
+from pyspark.ml.classification import LogisticRegression
+from pyspark.mllib.stat import Statistics
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: Logistic Regression Adult Dataset <file>", file=sys.stderr)
@@ -36,13 +17,10 @@ if __name__ == "__main__":
         .builder\
         .appName("task3")\
         .getOrCreate()
-
-
-    # access csv file in spark datafram
-
+    
     train_df = spark.read.csv(sys.argv[1], header = False, inferSchema = True)
 
-    column_names = ["age", "workClass", "fnlwgt", "education", "educationNum", "maritalStatus", "occupation", "relationship", "race", "sex", "capitalGain", "capitalLoss", "hoursPerWeek", "nativeCountry", "Labels"]
+    column_names = ["age", "workClass", "fnlwgt", "education", "educationNum", "maritalStatus", "occupation", "relationship", "race", "sex", "capitalGain", "capitalLoss", "hoursPerWeek", "nativeCountry", "Income"]
     train_df = train_df.toDF(*column_names)
 
     test_df = spark.sparkContext.textFile(sys.argv[2]).map(lambda line : line.split(","))
@@ -50,126 +28,139 @@ if __name__ == "__main__":
     test_df = test_df.toDF()
     test_df = test_df.toDF(*column_names)
 
-    res_df = train_df.union(test_df)
-
-    def preProcess(spark_df):
+    df_runing = train_df.union(test_df)
 
 
-        # strip spaces from all columns
-        c_names = spark_df.columns
-        for colname in c_names:
-            spark_df = spark_df.withColumn(colname, F.trim(F.col(colname)))
+    def preprocessingdata(spark_df):
 
-        # drop irrelevant columns
+        column_names_new=spark_df.columns
+        for i in column_names_new:
+            spark_df=spark_df.withColumn(i,sql_functions.trim(sql_functions.col(i)))
+        
+        #The dataset has a couple of values with value ?, replace with null values if applicable        
+        for i in column_names_new:
+            spark_df=spark_df.withColumn(i,sql_functions.when(sql_functions.col(i)=="?", None).otherwise(sql_functions.col(i)))
 
-        spark_df = spark_df.drop("fnlwgt","education")
+        #drop null values
+        spark_df1a=spark_df.na.drop("any")    
 
-        c_names.remove("fnlwgt")
-        c_names.remove("education")
-
-        # replace "?" with null
-
-        for colname in c_names:
-            spark_df = spark_df.withColumn(colname,F.when(F.col(colname) == "?", None).otherwise(F.col(colname)))
-
-        # now drop all the null values
-
-        spark1_df = spark_df.na.drop("any")
-
-        # get categorical features
-        cat_cols = ["workClass", "maritalStatus", "occupation", "relationship", "race", "sex", "nativeCountry"]
-
-        # put indices for categories in a feature
-        string_indexer = StringIndexer(inputCols = cat_cols, outputCols = ["wc_index", "mS_index", "occ_index", "rel_index", "race_index", "sex_index", "natCou_index"])
-        spark2_df = string_indexer.fit(spark1_df).transform(spark1_df)
-
-        # drop the original features
-        for colname in cat_cols:
-            spark2_df = spark2_df.drop(colname)
-
-        # rename the columns for convinience
-        new_columns = ["age", "educationNum","capitalGain", "capitalLoss", "hoursPerWeek", "Labels", "workClass", "maritalStatus", "occupation", "relationship", "race", "sex", "nativeCountry"]
-        spark2_df = spark2_df.toDF(*new_columns)
-
-        # get rid of sparse columns capitalGain and capitalLoss
-        spark2_df = spark2_df.drop("capitalGain","capitalLoss")
-
-        # get columns that need to be converted to float
-        float_cols = spark2_df.columns
-
-        # convert all except "Labels" to float values
-        for colname in float_cols:
-            if colname == "Labels":
-                continue
-
-            spark2_df = spark2_df.withColumn(colname, F.col(colname).cast("float"))
+        #Change Income class variable to 0 and 1
+        spark_df1=spark_df1a.withColumn("Income", sql_functions.when((sql_functions.col("Income") == "<=50K") | (sql_functions.col("Income") == "<=50K."), 0).otherwise(sql_functions.col("Income"))).withColumn("Income", sql_functions.when((sql_functions.col("Income") == ">50K")| (sql_functions.col("Income") == ">50K."), 1).otherwise(sql_functions.col("Income")))
 
 
-        # modify the "Labels" columns to suit the ML algorithms
+        #once I transform the categorical data to numeric data, transform capital gain and loss to log and scale all the numeric feaures. then perform titus technique to stay with most important features
+        #already have the same feature in numeric
+        spark_df1=spark_df1.drop("education")
 
-        spark3_df = spark2_df.withColumn("Labels", F.when((F.col("Labels") == "<=50K") | (F.col("Labels") == "<=50K."), 0).otherwise(F.col("Labels"))).withColumn("Labels", F.when((F.col("Labels") == ">50K")| (F.col("Labels") == ">50K."), 1).otherwise(F.col("Labels")))
-        # now change vlaues to integer types
-        spark3_df  = spark3_df.withColumn("Labels",F.col("Labels").cast("int"))
+        #Tranform categorical string data to numeric
+        categorical_features=["workClass","maritalStatus","occupation", "relationship","race", "sex","nativeCountry"]
+        categorical_index=StringIndexer(inputCols=categorical_features, 
+                                        outputCols= ["workClass_num","maritalStatus_num","occupation_num", "relationship_num","race_num", "sex_num","nativeCountry_num"])
+        spark_df2=categorical_index.fit(spark_df1).transform(spark_df1)
 
-        # now one-hot encoding of categorical features
-        encoder = OneHotEncoder(inputCols = cat_cols, outputCols = ["wc_index", "mSindex", "occ_index", "rel_index", "race_index", "sex_index", "nC_index"])
+        for i in categorical_features:
+            spark_df2=spark_df2.drop(i)
 
-        X_train = encoder.fit(spark3_df).transform(spark3_df)
+        new_columns =["age", "fnlwgt", "educationNum","capitalGain", "capitalLoss", "hoursPerWeek", "Income", 
+                      "workClass", "maritalStatus", "occupation", "relationship", "race", "sex", "nativeCountry"]
+        spark_df2=spark_df2.toDF(*new_columns)
 
-        # drop original categorical columns
-        for colname in cat_cols:
-            X_train = X_train.drop(colname)
+        #Log transform capital gain and capital loss adn fnlwgt.
+        skewed = ['capitalGain', 'capitalLoss','fnlwgt']
+        #scale the remaining numeric features
+        spark_df2 = spark_df2.withColumn(skewed[0], sql_functions.log1p(sql_functions.col(skewed[0]))) \
+                                      .withColumn(skewed[1], sql_functions.log1p(sql_functions.col(skewed[1]))) \
+                                      .withColumn(skewed[2], sql_functions.log1p(sql_functions.col(skewed[2])))
+        
+        for i in spark_df2.columns:
+            if i!="Income":
+                spark_df2=spark_df2.withColumn(i, sql_functions.col(i).cast("float"))
 
-        # now all the columns except the "Labels" are to be used as training feature
-        all_cols = X_train.columns
-        train_cols = list()
-        for colname in all_cols:
-            if colname == "Labels":
-                continue
+        spark_df3=spark_df2.withColumn("Income",sql_functions.col("Income").cast("int"))
 
-            train_cols.append(colname)
+        #Link the new categorical features to numerical values
+        encoder=OneHotEncoder(inputCols=categorical_features, 
+                              outputCols=["workClass_num","maritalStatus_num","occupation_num", "relationship_num","race_num", "sex_num","nativeCountry_num"])
 
-        print(train_cols)
+        #Incorporate new features to train dataset
+        X_train=encoder.fit(spark_df3).transform(spark_df3)
+        for i in categorical_features:
+            X_train=X_train.drop(i)
+        
 
-        vector_assembler = VectorAssembler(inputCols = train_cols, outputCol = "features")
-        X1_train = vector_assembler.transform(X_train)
+        #Perform Pearson correlation test to stay with most important features
+        col_names = X_train.columns
+
+        # Initialize lists to store the results
+        param = []
+        correlation = []
+        abs_cor = []
+        for c in col_names:
+            if c != "income":
+                corr = abs(Statistics.corr(X_train.select('Income', c).rdd.map(lambda x: (float(x[0]), float(x[1]))), method="pearson"))
+                param.append(c)
+                correlation.append(corr[0][1])
+                abs_cor.append(abs(corr[0][1]))
+
+                
+        # Create a DataFrame from the results
+        param_df = X_train.createDataFrame(zip(correlation, param, abs_cor), ["correlation", "parameter", "abs_cor"])
+
+        # Sort the DataFrame by absolute correlation in descending order
+        param_df = param_df.orderBy(sql_functions("abs_cor").desc())
+
+        # Set the 'parameter' column as the index
+        param_df = param_df.withColumnRenamed("parameter", "index").drop("abs_cor").drop("correlation")
+
+        best_features = param_df.select("index").limit(8).rdd.flatMap(lambda x: x).collect()
 
 
+        #top 8 best features
+        print("Top features to include in model:",best_features) 
 
-        return X1_train
+        #Remove the class variable
+        columns=best_features.columns
+        train_columns=list()
+        for i in columns:
+            if i!="Income":
+                train_columns.append(i)
 
+        # Create a VectorAssembler to combine the features into a single vector column
+        assembler = VectorAssembler(inputCols=train_columns, outputCol="features")
+        final_X_train = assembler.transform(X_train)
 
-
-    final_df = preProcess(res_df)
-    test_train_split = final_df.randomSplit([0.7,0.3],47)
+        return final_X_train
+    
+    final_df = preprocessingdata(df_runing)
+    test_train_split = final_df.randomSplit([0.8,0.2],47)
     X_train = test_train_split[0]
     X_test = test_train_split[1]
 
-    lr = LogisticRegression(featuresCol = "features", labelCol = "Labels", regParam = 0.4, maxIter = 100)
+    logistis_reg = LogisticRegression(featuresCol = "features", labelCol = "Labels", regParam = 0.1, maxIter = 200)
 
-    lrModel = lr.fit(X_train)
+    logistic_Model = logistis_reg.fit(X_train)
 
-    coeffs = lrModel.coefficients
-    intercept = lrModel.intercept
+    coeffs = logistic_Model.coefficients
+    intercept = logistic_Model.intercept
 
     print("Coefficients:",coeffs)
     print("intercept:",intercept)
 
-    y_pred = lrModel.transform(X_test)
+    y_pred = logistic_Model.transform(X_test)
     y_pred.show()
     y_pred.printSchema()
 
-    accuracy = y_pred.filter(F.col("Labels") == F.col("prediction")).count() / y_pred.count()
+    accuracy = y_pred.filter(sql_functions.col("Labels") == sql_functions.col("prediction")).count() / y_pred.count()
 
-    
     print("**********")
     print()
-    print("train-test split = (70-30)%")
-    print("classifier : Logistic Regression")
+    print("Classifier : Logistic Regression")
     print()
-    print("accuracy of classification, on test set: ",accuracy)
+    print("Accuracy of Logistic Model: ",accuracy)
     print()
     print("**********")
 
 
     spark.stop()
+
+
