@@ -48,7 +48,7 @@ def main(spark, input_path):
     y_pred.show()
     y_pred.printSchema()
 
-    accuracy = y_pred.filter(F.col("Labels") == sql_functions.col("prediction")).count() / y_pred.count()
+    accuracy = y_pred.filter(sql_functions.col("Labels") == sql_functions.col("prediction")).count() / y_pred.count()
 
     print("**********")
     print()
@@ -64,12 +64,12 @@ def preProcess(spark_df):
     # Trim all the columns and drop not used
     c_names = spark_df.columns
     for colname in c_names:
-        spark_df = spark_df.withColumn(colname, F.trim(F.col(colname)))
+        spark_df = spark_df.withColumn(colname, sql_functions.trim(sql_functions.col(colname)))
     spark_df = spark_df.drop("fnlwgt", "education")
 
     # Replace all the "?" with None and drop all rows with missing values
     for colname in spark_df.columns:
-        spark_df = spark_df.withColumn(colname, F.when(F.col(colname) == "?", None).otherwise(F.col(colname)))
+        spark_df = spark_df.withColumn(colname, sql_functions.when(sql_functions.col(colname) == "?", None).otherwise(sql_functions.col(colname)))
     spark_df = spark_df.na.drop("any")
     cat_cols = ["workClass", "maritalStatus", "occupation", "relationship", "race", "sex", "nativeCountry"]
     
@@ -86,12 +86,12 @@ def preProcess(spark_df):
     for colname in spark_df.columns:
         if colname in ["Labels", "workClass", "maritalStatus", "occupation", "relationship", "race", "sex", "nativeCountry"]:
             continue
-        spark_df = spark_df.withColumn(colname, F.col(colname).cast("float"))
+        spark_df = spark_df.withColumn(colname, sql_functions.col(colname).cast("float"))
 
     # Modify the "Labels" column to suit the ML algorithms
-    spark_df = spark_df.withColumn("Labels", F.when(F.col("Labels").isin(["<=50K", "<=50K."]), 0).otherwise(F.col("Labels")))
-    spark_df = spark_df.withColumn("Labels", F.when(F.col("Labels").isin([">50K", ">50K."]), 1).otherwise(F.col("Labels")))
-    spark_df = spark_df.withColumn("Labels", F.col("Labels").cast("int"))
+    spark_df = spark_df.withColumn("Labels", sql_functions.when(sql_functions.col("Labels").isin(["<=50K", "<=50K."]), 0).otherwise(sql_functions.col("Labels")))
+    spark_df = spark_df.withColumn("Labels", sql_functions.when(sql_functions.col("Labels").isin([">50K", ">50K."]), 1).otherwise(sql_functions.col("Labels")))
+    spark_df = spark_df.withColumn("Labels", sql_functions.col("Labels").cast("int"))
 
     # One-hot encode all the categorical features
     encoder = OneHotEncoder(inputCols=["workClass", "maritalStatus", "occupation", "relationship", "race", "sex", "nativeCountry"], 
