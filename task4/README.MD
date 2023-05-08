@@ -9,6 +9,7 @@ Proceed to clone this folder into the Cloud cluster spark-examples folder. If yo
 * from __future__ import print_function
 * from pyspark.sql import SparkSession
 * from pyspark.ml.classification import LogisticRegression
+* from pyspark.ml.classification import DecisionTreeClassifier, RandomForestClassifier
 * from pyspark.ml.feature import StringIndexer, VectorAssembler
 * import pyspark.sql.functions as psf
 * import sys
