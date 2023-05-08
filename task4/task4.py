@@ -31,13 +31,9 @@ def main(spark, input_path):
 
     accuracy = y_pred.filter(sql_functions.col("Labels") == sql_functions.col("prediction")).count() / y_pred.count()
 
-    print("**********")
-    print()
-    print("Classifier : Decision Tree")
-    print()
-    print("Accuracy of Decision Tree Model: ",accuracy)
-    print()
-    print("**********")
+    print("-----------------------------------------------------")
+    print("Accuracy(DT): ",accuracy)
+    print("-----------------------------------------------------")
 
     RandomForest = RandomForestClassifier(featuresCol = "features", labelCol = "Labels", numTrees = 15)
 
@@ -50,13 +46,9 @@ def main(spark, input_path):
 
     accuracy = y_pred.filter(sql_functions.col("Labels") == sql_functions.col("prediction")).count() / y_pred.count()
 
-    print("**********")
-    print()
-    print("Classifier : Random Forest")
-    print()
-    print("Accuracy of Random Forest Model: ",accuracy)
-    print()
-    print("**********")
+    print("-----------------------------------------------------")
+    print("Accuracy(RF): ",accuracy)
+    print("-----------------------------------------------------")
 
     spark.stop()
 
@@ -108,7 +100,7 @@ def preProcess(spark_df):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Logistic Regression Adult Dataset", file=sys.stderr)
+        print("RF and DT Adult Dataset", file=sys.stderr)
         sys.exit(-1)
 
     spark = SparkSession.builder.appName("RF and DT on Census Income Data").enableHiveSupport().getOrCreate()
