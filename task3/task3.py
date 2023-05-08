@@ -58,14 +58,14 @@ if __name__ == "__main__":
         spark_df = spark_df.drop(*cat_cols)
 
         # Rename the columns for convenience
-        spark_df = spark_df.toDF("age", "educationNum", "hoursPerWeek", "Labels", "wc", "ms", "occ", "rel", "race", "sex", "natCou")
+        spark_df = spark_df.toDF("age", "educationNum","capitalGain", "capitalLoss", "hoursPerWeek", "Labels", "workClass", "maritalStatus", "occupation", "relationship", "race", "sex", "nativeCountry")
 
         # Get rid of sparse columns capitalGain and capitalLoss
         spark_df = spark_df.drop("capitalGain", "capitalLoss")
 
         # Convert all float columns to float
         for colname in spark_df.columns:
-            if colname in ["Labels", "wc", "ms", "occ", "rel", "race", "sex", "natCou"]:
+            if colname in ["Labels", "workClass", "maritalStatus", "occupation", "relationship", "race", "sex", "nativeCountry"]:
                 continue
             spark_df = spark_df.withColumn(colname, F.col(colname).cast("float"))
 
@@ -75,12 +75,12 @@ if __name__ == "__main__":
         spark_df = spark_df.withColumn("Labels", F.col("Labels").cast("int"))
 
         # One-hot encoding of categorical features
-        encoder = OneHotEncoder(inputCols=["wc", "ms", "occ", "rel", "race", "sex", "natCou"], 
+        encoder = OneHotEncoder(inputCols=["workClass", "maritalStatus", "occupation", "relationship", "race", "sex", "nativeCountry"], 
                                 outputCols=["wc_vec", "ms_vec", "occ_vec", "rel_vec", "race_vec", "sex_vec", "natCou_vec"])
         spark_df = encoder.fit(spark_df).transform(spark_df)
 
         # Drop original categorical columns
-        spark_df = spark_df.drop("wc", "ms", "occ", "rel", "race", "sex", "natCou")
+        spark_df = spark_df.drop("workClass", "maritalStatus", "occupation", "relationship", "race", "sex", "nativeCountry")
 
         # All columns except "Labels" are used as training features
         assembler = VectorAssembler(inputCols=[col for col in spark_df.columns if col != "Labels"],
