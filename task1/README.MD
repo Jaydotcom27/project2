@@ -1,11 +1,21 @@
-# Part 1 : TOXIC COMMENT CLASSIFICATION
+# Toxic Comment Classification (Part 1)
 
-This folder contains the following files:
-* *README file*: This file
-* *Files*: task1.py & test1.sh
+This repository contains one script and two csv files to classify the comments into the level of toxicity. One csv file is used for training and the other one for testing the machine learning logistic regression model.
 
-## Data Source
-You can find the data from: https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/data
+## Getting Started
+
+Proceed to clone the repository into the Cloud cluster spark-examples folder .
+
+`git clone https://github.com/Jaydotcom27/project2.git`
+
+## Data 
+
+The data used in this analysis was obtained from a Kaggle Toxic Comment Classification Challenge, which can be accesed here: https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/data
+
+## Usage
+
+To run this code you need a functional Spark system running, for our experiments a 3 node cluster hosted on Google Cloud was the way to go. Two worker nodes and one manager orchestrating.
+The driver code is stored in the file `test1.sh` and it will load the input data, train the machine learning model through the Spark Framework and output the classification for the 'test.csv' file. Make sure to double check the appropiate location for the two datafiles csv, it needs to be into the task1 folder with the names 'test.csv' and 'train.csv'.
 
 ## Required libraries
 To run these codes, it is mandatory to run the following libraries:
@@ -15,5 +25,3 @@ To run these codes, it is mandatory to run the following libraries:
 * import pyspark.sql.functions as psf
 * import sys
 
-## Instructions to use this code
-To run everything we call the test file as `bash test1.sh` and it will get the input, process the information through the Spark framework and output the final result. A copy of each dataset named “test.csv” and “train.csv” must be in this folder.
